@@ -3,57 +3,71 @@
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-
 export default function AddPaymentForm({ loanId }) {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    await supabase.from("payments").insert({
-      loan_id: loanId,
-      amount: Number(amount),
-      payment_date: new Date(),
-    });
+    const paymentAmount = Number(amount);
 
+    if (!paymentAmount || paymentAmount <= 0) {
+      alert("Enter valid payment amount");
+      setLoading(false);
+      return;
+    }
+
+    // Insert payment
+    const { error } = await supabase.from("payments").insert([
+      {
+        loan_id: loanId,
+        amount: paymentAmount,
+        payment_date: new Date(),
+      },
+    ]);
+
+    if (error) {
+      alert(error.message);
+      setLoading(false);
+      return;
+    }
+
+    alert("Payment added successfully");
     window.location.reload();
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} style={{ marginBottom: "30px" }}>
+      <h3>Add Payment</h3>
+
       <input
         type="number"
-        placeholder="Enter payment amount"
+        placeholder="Enter amount"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
-        required
-        style={{
-          padding: "10px",
-          marginRight: "10px",
-          borderRadius: "6px",
-          border: "1px solid #ccc",
-        }}
+        style={{ padding: "8px", marginRight: "10px" }}
       />
 
       <button
         type="submit"
         disabled={loading}
         style={{
-          background: "#2563eb",
+          padding: "8px 16px",
+          background: "#0070f3",
           color: "white",
-          padding: "10px 20px",
-          borderRadius: "6px",
           border: "none",
+          borderRadius: "6px",
           cursor: "pointer",
         }}
       >
-        Add Payment
+        {loading ? "Processing..." : "Add Payment"}
       </button>
     </form>
   );
