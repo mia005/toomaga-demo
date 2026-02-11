@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 import SummaryCards from "./components/SummaryCards";
 import ChurchSummaryTable from "./components/ChurchSummaryTable";
 import LoanListTable from "./components/LoanListTable";
-import ActionBar from "./components/ActionBar";
-import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,7 +14,6 @@ const supabase = createClient(
 export default function Dashboard() {
   const [loans, setLoans] = useState([]);
   const [churches, setChurches] = useState([]);
-  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -34,30 +32,25 @@ export default function Dashboard() {
     setChurches(churchesData || []);
   }
 
-  function toggleTheme() {
-    setDarkMode(!darkMode);
-    document.body.className = darkMode ? "light" : "dark";
-  }
-
   return (
     <div style={containerStyle}>
-      <h1>Toomaga Payment System</h1>
-
-      <ActionBar toggleTheme={toggleTheme} darkMode={darkMode} />
+      <h1 style={{ marginBottom: "40px" }}>
+        Toomaga Payment System
+      </h1>
 
       <SummaryCards loans={loans} />
 
       <ChurchSummaryTable loans={loans} churches={churches} />
 
-      <LoanListTable
-        loans={loans}
-        churches={churches}
-        onSelect={(loan) => alert("Open loan details")}
-      />
+      <LoanListTable loans={loans} churches={churches} />
     </div>
   );
 }
 
 const containerStyle = {
+  maxWidth: "1200px",
+  margin: "0 auto",
   padding: "40px",
+  background: "#f5f7fa",
+  minHeight: "100vh",
 };
