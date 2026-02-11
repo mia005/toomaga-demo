@@ -12,7 +12,6 @@ export default function Page() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [churches, setChurches] = useState([]);
   const [loans, setLoans] = useState([]);
-  const [payments, setPayments] = useState([]);
   const [selectedChurch, setSelectedChurch] = useState("");
 
   useEffect(() => {
@@ -20,24 +19,14 @@ export default function Page() {
   }, [loggedIn]);
 
   async function fetchData() {
-    const { data: churchesData } = await supabase
-      .from("churches")
-      .select("*");
-
-    const { data: loansData } = await supabase
-      .from("loans")
-      .select("*");
-
-    const { data: paymentsData } = await supabase
-      .from("payments")
-      .select("*");
+    const { data: churchesData } = await supabase.from("churches").select("*");
+    const { data: loansData } = await supabase.from("loans").select("*");
 
     setChurches(churchesData || []);
     setLoans(loansData || []);
-    setPayments(paymentsData || []);
   }
 
-  // ------------------ FUNCTIONS ------------------
+  // ---------------- LOAN FUNCTIONS ----------------
 
   async function createLoan() {
     if (!selectedChurch) {
@@ -53,30 +42,33 @@ export default function Page() {
       return;
     }
 
-  const adminFee = 12;
-const openingBalance = amount + adminFee;
+    const repayment = Number(prompt("Enter Monthly Repayment Amount"));
+    if (!repayment) return;
 
+    const adminFee = 12;
+    const openingBalance = amount + adminFee;
 
-  await supabase.from("loans").insert([
-  {
-    church_id: selectedChurch,
-    principal: amount,
-    admin_fee: adminFee,
-    balance: openingBalance,
-    interest_rate: 5,
-    interest_applied: false,
-    loan_ref: "TMS-" + Date.now(),
-    start_date: new Date()
-  }
-]);
-;
+    await supabase.from("loans").insert([
+      {
+        church_id: selectedChurch,
+        principal: amount,
+        admin_fee: adminFee,
+        balance: openingBalance,
+        repayment_amount: repayment,
+        interest_rate: 5,
+        interest_applied: false,
+        loan_ref: "TMS-" + Date.now(),
+        start_date: new Date(),
+        status: "Active"
+      }
+    ]);
 
     fetchData();
   }
 
   async function addPayment() {
     if (!selectedChurch) {
-      alert("Please select a church");
+      alert("Select a church first");
       return;
     }
 
@@ -90,7 +82,6 @@ const openingBalance = amount + adminFee;
     }
 
     const loan = churchLoans[0];
-
     const amount = Number(prompt("Enter Payment Amount"));
     if (!amount) return;
 
@@ -131,66 +122,25 @@ const openingBalance = amount + adminFee;
     fetchData();
   }
 
-  function exportCSV() {
-    let csv = "Loan Ref,Church,Principal,Balance\n";
-
-    loans.forEach((loan) => {
-      const church = churches.find((c) => c.id === loan.church_id);
-      csv += `${loan.loan_ref},${church?.church_name},${loan.principal},${loan.balance}\n`;
-    });
-
-    downloadFile(csv, "portfolio.csv", "text/csv");
-  }
-
-  function exportLoanReport() {
-    if (!selectedChurch) {
-      alert("Select a church first");
-      return;
-    }
-
-    const churchLoans = loans.filter(
-      (loan) => loan.church_id === selectedChurch
-    );
-
-    let csv = "Loan Ref,Principal,Balance\n";
-
-    churchLoans.forEach((loan) => {
-      csv += `${loan.loan_ref},${loan.principal},${loan.balance}\n`;
-    });
-
-    downloadFile(csv, "loan_report.csv", "text/csv");
-  }
-
-  function exportPDF() {
-    let content = "Toomaga Loan Report\n\n";
-
-    loans.forEach((loan) => {
-      const church = churches.find((c) => c.id === loan.church_id);
-      content += `Loan: ${loan.loan_ref}\n`;
-      content += `Church: ${church?.church_name}\n`;
-      content += `Balance: $${loan.balance}\n\n`;
-    });
-
-    downloadFile(content, "report.pdf", "application/pdf");
-  }
-
-  function downloadFile(content, filename, type) {
-    const blob = new Blob([content], { type });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-  }
+  // ---------------- CALCULATIONS ----------------
 
   const totalOutstanding = loans.reduce(
     (sum, loan) => sum + (loan.balance || 0),
     0
   );
 
+  const selectedChurchLoans = loans.filter(
+    (loan) => loan.church_id === selectedChurch
+  );
+
+  const selectedChurchOutstanding = selectedChurchLoans.reduce(
+    (sum, loan) => sum + (loan.balance || 0),
+    0
+  );
+
   const projectedInterest = totalOutstanding * 0.05;
 
-  // ------------------ LOGIN ------------------
+  // ---------------- LOGIN ----------------
 
   if (!loggedIn) {
     return (
@@ -208,11 +158,11 @@ const openingBalance = amount + adminFee;
     );
   }
 
-  // ------------------ DASHBOARD ------------------
+  // ---------------- DASHBOARD ----------------
 
   return (
     <div style={centerStyle}>
-      <div style={{ width: "100%", maxWidth: 1100 }}>
+      <div style={{ width: "100%", maxWidth: 1200 }}>
         <h1 style={{ textAlign: "center" }}>
           Toomaga Payment System
         </h1>
@@ -228,6 +178,15 @@ const openingBalance = amount + adminFee;
             value={formatCurrency(projectedInterest)}
           />
         </div>
+
+        {selectedChurch && (
+          <div style={{ marginBottom: 20 }}>
+            <strong>
+              Selected Church Outstanding:{" "}
+              {formatCurrency(selectedChurchOutstanding)}
+            </strong>
+          </div>
+        )}
 
         <div style={cardStyle}>
           <div style={{ marginBottom: 20 }}>
@@ -259,23 +218,60 @@ const openingBalance = amount + adminFee;
             <button style={buttonStyle} onClick={applyInterest}>
               Apply 5% Interest
             </button>
-            <button style={buttonStyle} onClick={exportCSV}>
-              Export Portfolio CSV
-            </button>
-            <button style={buttonStyle} onClick={exportLoanReport}>
-              Loan Report CSV
-            </button>
-            <button style={buttonStyle} onClick={exportPDF}>
-              Export PDF
-            </button>
           </div>
+        </div>
+
+        {/* LOAN TABLE */}
+
+        <div style={cardStyle}>
+          <h3>Loan Applications</h3>
+
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f1f5f9" }}>
+                <th style={thStyle}>Loan Ref</th>
+                <th style={thStyle}>Church</th>
+                <th style={thStyle}>Principal</th>
+                <th style={thStyle}>Balance</th>
+                <th style={thStyle}>Repayment</th>
+                <th style={thStyle}>Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {loans.map((loan) => {
+                const church = churches.find(
+                  (c) => c.id === loan.church_id
+                );
+
+                return (
+                  <tr key={loan.id}>
+                    <td style={tdStyle}>{loan.loan_ref}</td>
+                    <td style={tdStyle}>{church?.church_name}</td>
+                    <td style={tdStyle}>
+                      {formatCurrency(loan.principal)}
+                    </td>
+                    <td style={tdStyle}>
+                      {formatCurrency(loan.balance)}
+                    </td>
+                    <td style={tdStyle}>
+                      {formatCurrency(loan.repayment_amount)}
+                    </td>
+                    <td style={tdStyle}>
+                      {loan.status || "Active"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
 }
 
-// ------------------ COMPONENTS ------------------
+// ---------------- COMPONENTS ----------------
 
 function StatCard({ title, value }) {
   return (
@@ -286,8 +282,6 @@ function StatCard({ title, value }) {
   );
 }
 
-// ------------------ HELPERS ------------------
-
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-NZ", {
     style: "currency",
@@ -295,7 +289,7 @@ function formatCurrency(value) {
   }).format(value || 0);
 }
 
-// ------------------ STYLES ------------------
+// ---------------- STYLES ----------------
 
 const centerStyle = {
   minHeight: "100vh",
@@ -349,4 +343,15 @@ const selectStyle = {
   borderRadius: 8,
   border: "1px solid #ccc",
   minWidth: 250
+};
+
+const thStyle = {
+  padding: 10,
+  textAlign: "left",
+  borderBottom: "1px solid #ddd"
+};
+
+const tdStyle = {
+  padding: 10,
+  borderBottom: "1px solid #eee"
 };
