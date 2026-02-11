@@ -41,6 +41,41 @@ export default function Home() {
       alert("Loan cannot exceed $80,000");
       return;
     }
+    async function addPayment() {
+  const loanId = prompt("Enter Loan ID");
+  const amount = Number(prompt("Enter Payment Amount"));
+
+  if (!loanId || !amount) return;
+
+  const { data: loan } = await supabase
+    .from("loans")
+    .select("*")
+    .eq("id", loanId)
+    .single();
+
+  if (!loan) {
+    alert("Loan not found");
+    return;
+  }
+
+  const newBalance = loan.balance - amount;
+
+  await supabase.from("payments").insert([
+    {
+      loan_id: loanId,
+      amount: amount,
+      payment_date: new Date()
+    }
+  ]);
+
+  await supabase
+    .from("loans")
+    .update({ balance: newBalance })
+    .eq("id", loanId);
+
+  fetchData();
+}
+
 
     const openingBalance = amount + 120;
 
@@ -74,6 +109,10 @@ export default function Home() {
       <button onClick={createLoan} style={{ marginLeft: 10 }}>
         + Create Loan
       </button>
+          <button onClick={addPayment} style={{ marginLeft: 10 }}>
+  + Add Payment
+</button>
+
 
       <h2>Church List</h2>
       <ul>
