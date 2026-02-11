@@ -1,5 +1,4 @@
 import "./globals.css";
-
 export const metadata = {
   title: "Toomaga Payment System",
   description: "Loan Management Dashboard",
