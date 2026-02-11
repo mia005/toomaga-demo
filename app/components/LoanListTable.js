@@ -69,3 +69,22 @@ const td = {
 const row = {
   background: "#fff",
 };
+import Link from "next/link";
+
+...
+
+<tbody>
+  {loans.map((loan) => (
+    <tr key={loan.id}>
+      <td>
+        <Link href={`/loan/${loan.id}`}>
+          {loan.loan_ref}
+        </Link>
+      </td>
+      <td>{loan.church_name}</td>
+      <td>${loan.principal.toFixed(2)}</td>
+      <td>${loan.balance.toFixed(2)}</td>
+      <td>{loan.interest_rate}%</td>
+    </tr>
+  ))}
+</tbody>
