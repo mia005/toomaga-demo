@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import AddPaymentForm from "@/app/components/AddPaymentForm";
+import AddPaymentForm from "../../components/AddPaymentForm";
+
 
 export const dynamic = "force-dynamic";
 
