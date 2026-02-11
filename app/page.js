@@ -1,24 +1,31 @@
 export const dynamic = "force-dynamic";
 
-import { createServerClient } from "./lib/supabaseServer";
-import SummaryCards from "./components/SummaryCards";
-import LoanTable from "./components/LoanListTable";
-import ActionBar from "./components/ActionBar";
-import DashboardLayout from "./components/DashboardLayout";
+import { createClient } from "@supabase/supabase-js";
 
 export default async function Page() {
-  const supabase = createServerClient();
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
 
-  const { data: loans } = await supabase
-    .from("loans")
-    .select("*")
-    .order("created_at", { ascending: false });
+    const { data: loans, error } = await supabase
+      .from("loans")
+      .select("*");
 
-  return (
-    <DashboardLayout>
-      <SummaryCards loans={loans || []} />
-      <ActionBar />
-      <LoanTable loans={loans || []} />
-    </DashboardLayout>
-  );
+    if (error) {
+      console.error("Supabase error:", error);
+      return <div>Database error.</div>;
+    }
+
+    return (
+      <div>
+        <h1>Toomaga Payment System</h1>
+        <pre>{JSON.stringify(loans, null, 2)}</pre>
+      </div>
+    );
+  } catch (err) {
+    console.error("Server error:", err);
+    return <div>Server error occurred.</div>;
+  }
 }
