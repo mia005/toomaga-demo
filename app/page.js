@@ -227,6 +227,23 @@ export default function Home() {
   </div>
 );
 
+const btnStyle = {
+  marginRight: 10,
+  padding: "10px 18px",
+  borderRadius: 6,
+  border: "none",
+  background: "#2563eb",
+  color: "white",
+  cursor: "pointer"
+};
+
+const cardStyle = {
+  background: "white",
+  padding: 20,
+  borderRadius: 10,
+  marginBottom: 30,
+  boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+};
 
 
 
