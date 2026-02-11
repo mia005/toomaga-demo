@@ -7,6 +7,33 @@ import SummaryCards from "./components/SummaryCards";
 import LoanListTable from "./components/LoanListTable";
 import ActionBar from "./components/ActionBar";
 import LoanModal from "./components/LoanModal";
+async function handleAddPayment() {
+  if (!paymentAmount || paymentAmount <= 0) {
+    alert("Enter valid amount");
+    return;
+  }
+
+  const amount = parseFloat(paymentAmount);
+
+  // Insert payment
+  await supabase.from("payments").insert({
+    loan_id: loan.id,
+    amount,
+  });
+
+  // Update balance
+  const newBalance = Math.max(0, loan.balance - amount);
+
+  await supabase
+    .from("loans")
+    .update({
+      balance: newBalance,
+      status: newBalance === 0 ? "Completed" : "Active",
+    })
+    .eq("id", loan.id);
+
+  location.reload();
+}
 
 export default function Dashboard() {
   const [loans, setLoans] = useState([]);
