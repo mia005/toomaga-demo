@@ -1,6 +1,7 @@
-"use client";
+
 
 "use client";
+
 const [paymentAmount, setPaymentAmount] = useState("");
 
 import { useEffect, useState } from "react";
