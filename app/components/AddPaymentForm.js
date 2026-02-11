@@ -25,23 +25,41 @@ export default function AddPaymentForm({ loanId }) {
     }
 
     // Insert payment
-    const { error } = await supabase.from("payments").insert([
-      {
-        loan_id: loanId,
-        amount: paymentAmount,
-        payment_date: new Date(),
-      },
-    ]);
+    const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    if (error) {
-      alert(error.message);
-      setLoading(false);
-      return;
-    }
+  const paymentAmount = Number(amount);
 
-    alert("Payment added successfully");
-    window.location.reload();
-  };
+  // 1️⃣ Get latest loan balance
+  const { data: loan } = await supabase
+    .from("loans")
+    .select("*")
+    .eq("id", loanId)
+    .single();
+
+  if (!loan) return;
+
+  const newBalance = Number(loan.balance) - paymentAmount;
+
+  // 2️⃣ Insert payment
+  await supabase.from("payments").insert({
+    loan_id: loanId,
+    amount: paymentAmount,
+    payment_date: new Date(),
+  });
+
+  // 3️⃣ Update balance
+  await supabase
+    .from("loans")
+    .update({
+      balance: newBalance,
+      status: newBalance <= 0 ? "COMPLETED" : "ACTIVE",
+    })
+    .eq("id", loanId);
+
+  window.location.reload();
+};
+
 
   return (
     <form onSubmit={handleSubmit} style={{ marginBottom: "30px" }}>
