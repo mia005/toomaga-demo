@@ -54,3 +54,12 @@ const containerStyle = {
   background: "#f5f7fa",
   minHeight: "100vh",
 };
+
+<div
+  style={{
+    maxWidth: "1100px",
+    margin: "0 auto",
+    padding: "40px 20px",
+  }}
+>
+
