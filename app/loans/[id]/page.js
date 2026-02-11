@@ -44,6 +44,16 @@ export default async function LoanDetail({ params }) {
 
   const totalPaid =
     payments?.reduce((sum, p) => sum + Number(p.amount), 0) || 0;
+let runningBalance = Number(loan.principal);
+
+const paymentsWithBalance = payments?.map((payment) => {
+  runningBalance -= Number(payment.amount);
+
+  return {
+    ...payment,
+    runningBalance,
+  };
+});
 
   return (
     <div style={{ padding: "40px" }}>
@@ -72,14 +82,15 @@ export default async function LoanDetail({ params }) {
           </tr>
         </thead>
         <tbody>
-          {paymentsWithBalance?.map((p) => (
-            <tr key={p.id}>
-              <td>{new Date(p.payment_date).toLocaleDateString()}</td>
-              <td>${Number(p.amount).toFixed(2)}</td>
-              <td>${Number(p.runningBalance).toFixed(2)}</td>
-            </tr>
-          ))}
-        </tbody>
+  {paymentsWithBalance?.map((p) => (
+    <tr key={p.id}>
+      <td>{new Date(p.payment_date).toLocaleDateString()}</td>
+      <td>${Number(p.amount).toFixed(2)}</td>
+      <td>${Number(p.runningBalance).toFixed(2)}</td>
+    </tr>
+  ))}
+</tbody>
+
       </table>
     </div>
   );
