@@ -131,15 +131,25 @@ export default function Home() {
     <div style={{ padding: 40, fontFamily: "Arial" }}>
       <h1>Toomaga Payment System – Board Demo</h1>
 
-      <h2>Dashboard</h2>
-      <p>Total Loans: {loans.length}</p>
-     <p>
-  Total Outstanding:{" "}
-  {totalOutstanding.toLocaleString("en-NZ", {
-    style: "currency",
-    currency: "NZD"
-  })}
-</p>
+      <h2 style={{ marginBottom: 20 }}>Dashboard</h2>
+
+<div style={{ display: "flex", gap: 20, marginBottom: 30 }}>
+  <div style={{ padding: 20, background: "#f4f6f8", borderRadius: 8 }}>
+    <h3>Total Loans</h3>
+    <p style={{ fontSize: 24, fontWeight: "bold" }}>{loans.length}</p>
+  </div>
+
+  <div style={{ padding: 20, background: "#f4f6f8", borderRadius: 8 }}>
+    <h3>Total Outstanding</h3>
+    <p style={{ fontSize: 24, fontWeight: "bold" }}>
+      {totalOutstanding.toLocaleString("en-NZ", {
+        style: "currency",
+        currency: "NZD"
+      })}
+    </p>
+  </div>
+</div>
+
 
 
 
