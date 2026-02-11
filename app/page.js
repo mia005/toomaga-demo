@@ -53,7 +53,9 @@ export default function Page() {
       return;
     }
 
-    const openingBalance = amount + 120;
+  const adminFee = 12;
+const openingBalance = amount + adminFee;
+
 
     await supabase.from("loans").insert([
       {
