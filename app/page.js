@@ -127,28 +127,105 @@ export default function Home() {
     0
   );
 
-  return (
-    <div style={{ padding: 40, fontFamily: "Arial" }}>
-      <h1>Toomaga Payment System – Board Demo</h1>
+  return (return (
+  <div style={{
+    minHeight: "100vh",
+    background: "#f5f7fa",
+    padding: "40px",
+    fontFamily: "Segoe UI, sans-serif"
+  }}>
 
-      <h2 style={{ marginBottom: 20 }}>Dashboard</h2>
+    <h1 style={{
+      marginBottom: 30,
+      fontWeight: 600
+    }}>
+      Toomaga Payment System
+    </h1>
 
-<div style={{ display: "flex", gap: 20, marginBottom: 30 }}>
-  <div style={{ padding: 20, background: "#f4f6f8", borderRadius: 8 }}>
-    <h3>Total Loans</h3>
-    <p style={{ fontSize: 24, fontWeight: "bold" }}>{loans.length}</p>
+    {/* DASHBOARD */}
+    <div style={{
+      display: "flex",
+      gap: 20,
+      marginBottom: 40
+    }}>
+      <div style={{
+        flex: 1,
+        background: "white",
+        padding: 25,
+        borderRadius: 10,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+      }}>
+        <h3>Total Loans</h3>
+        <p style={{ fontSize: 28, fontWeight: "bold" }}>
+          {loans.length}
+        </p>
+      </div>
+
+      <div style={{
+        flex: 1,
+        background: "white",
+        padding: 25,
+        borderRadius: 10,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+      }}>
+        <h3>Total Outstanding</h3>
+        <p style={{ fontSize: 28, fontWeight: "bold" }}>
+          {totalOutstanding.toLocaleString("en-NZ", {
+            style: "currency",
+            currency: "NZD"
+          })}
+        </p>
+      </div>
+    </div>
+
+    {/* ACTIONS */}
+    <div style={{
+      background: "white",
+      padding: 20,
+      borderRadius: 10,
+      marginBottom: 40,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+    }}>
+      <h3 style={{ marginBottom: 15 }}>Actions</h3>
+
+      <button style={btnStyle} onClick={addChurch}>Add Church</button>
+      <button style={btnStyle} onClick={createLoan}>Create Loan</button>
+      <button style={btnStyle} onClick={addPayment}>Add Payment</button>
+      <button style={btnStyle} onClick={applyInterest}>Apply 5% Interest</button>
+      <button style={btnStyle} onClick={addTopUp}>Add Top-Up</button>
+    </div>
+
+    {/* CHURCH LIST */}
+    <div style={cardStyle}>
+      <h3>Churches</h3>
+      <ul>
+        {churches.map((c) => (
+          <li key={c.id}>{c.church_name}</li>
+        ))}
+      </ul>
+    </div>
+
+    {/* LOANS */}
+    <div style={cardStyle}>
+      <h3>Loans</h3>
+      <ul>
+        {loans.map((l) => (
+          <li key={l.id}>
+            Principal: {Number(l.principal).toLocaleString("en-NZ", {
+              style: "currency",
+              currency: "NZD"
+            })} |
+            Balance: {Number(l.balance).toLocaleString("en-NZ", {
+              style: "currency",
+              currency: "NZD"
+            })}
+          </li>
+        ))}
+      </ul>
+    </div>
+
   </div>
-
-  <div style={{ padding: 20, background: "#f4f6f8", borderRadius: 8 }}>
-    <h3>Total Outstanding</h3>
-    <p style={{ fontSize: 24, fontWeight: "bold" }}>
-      {totalOutstanding.toLocaleString("en-NZ", {
-        style: "currency",
-        currency: "NZD"
-      })}
-    </p>
-  </div>
-</div>
+);
 
 
 
