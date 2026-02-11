@@ -57,18 +57,19 @@ export default function Page() {
 const openingBalance = amount + adminFee;
 
 
-    await supabase.from("loans").insert([
-      {
-        church_id: selectedChurch,
-        principal: amount,
-        admin_fee: 120,
-        balance: openingBalance,
-        interest_rate: 5,
-        interest_applied: false,
-        loan_ref: "TMS-" + Date.now(),
-        start_date: new Date()
-      }
-    ]);
+  await supabase.from("loans").insert([
+  {
+    church_id: selectedChurch,
+    principal: amount,
+    admin_fee: adminFee,
+    balance: openingBalance,
+    interest_rate: 5,
+    interest_applied: false,
+    loan_ref: "TMS-" + Date.now(),
+    start_date: new Date()
+  }
+]);
+;
 
     fetchData();
   }
