@@ -63,35 +63,6 @@ export default function Home() {
     const loanId = prompt("Enter Loan ID");
     const amount = Number(prompt("Enter Payment Amount"));
 
-    async function applyInterest() {
-  const loanId = prompt("Enter Loan ID to apply 5% interest");
-
-  if (!loanId) return;
-
-  const { data: loan } = await supabase
-    .from("loans")
-    .select("*")
-    .eq("id", loanId)
-    .single();
-
-  if (!loan) {
-    alert("Loan not found");
-    return;
-  }
-
-  const interestAmount = loan.balance * 0.05;
-  const newBalance = loan.balance + interestAmount;
-
-  await supabase
-    .from("loans")
-    .update({ balance: newBalance })
-    .eq("id", loanId);
-
-  alert("5% interest applied successfully");
-  fetchData();
-}
-
-
     if (!loanId || !amount) return;
 
     const { data: loan } = await supabase
@@ -123,6 +94,34 @@ export default function Home() {
     fetchData();
   }
 
+  async function applyInterest() {
+    const loanId = prompt("Enter Loan ID to apply 5% interest");
+
+    if (!loanId) return;
+
+    const { data: loan } = await supabase
+      .from("loans")
+      .select("*")
+      .eq("id", loanId)
+      .single();
+
+    if (!loan) {
+      alert("Loan not found");
+      return;
+    }
+
+    const interestAmount = loan.balance * 0.05;
+    const newBalance = loan.balance + interestAmount;
+
+    await supabase
+      .from("loans")
+      .update({ balance: newBalance })
+      .eq("id", loanId);
+
+    alert("5% interest applied successfully");
+    fetchData();
+  }
+
   const totalOutstanding = loans.reduce(
     (sum, l) => sum + (l.balance || 0),
     0
@@ -145,10 +144,9 @@ export default function Home() {
       <button onClick={addPayment} style={{ marginLeft: 10 }}>
         + Add Payment
       </button>
-          <button onClick={applyInterest} style={{ marginLeft: 10 }}>
-  + Apply 5% Interest
-</button>
-
+      <button onClick={applyInterest} style={{ marginLeft: 10 }}>
+        + Apply 5% Interest
+      </button>
 
       <h2>Church List</h2>
       <ul>
