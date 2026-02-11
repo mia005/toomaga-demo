@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SummaryCards from "./components/SummaryCards";
+import ChurchSummaryTable from "./components/ChurchSummaryTable";
+import LoanListTable from "./components/LoanListTable";
+import ActionBar from "./components/ActionBar";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -8,350 +12,52 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-export default function Page() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [churches, setChurches] = useState([]);
+export default function Dashboard() {
   const [loans, setLoans] = useState([]);
-  const [selectedChurch, setSelectedChurch] = useState("");
+  const [churches, setChurches] = useState([]);
+  const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
-    if (loggedIn) fetchData();
-  }, [loggedIn]);
+    fetchData();
+  }, []);
 
   async function fetchData() {
-    const { data: churchesData } = await supabase.from("churches").select("*");
-    const { data: loansData } = await supabase.from("loans").select("*");
-
-    setChurches(churchesData || []);
-    setLoans(loansData || []);
-  }
-
-  // ---------------- LOAN FUNCTIONS ----------------
-
-  async function createLoan() {
-    if (!selectedChurch) {
-      alert("Please select a church");
-      return;
-    }
-
-    const amount = Number(prompt("Enter Loan Amount"));
-    if (!amount) return;
-
-    if (amount > 80000) {
-      alert("Loan cannot exceed $80,000");
-      return;
-    }
-
-    const repayment = Number(prompt("Enter Monthly Repayment Amount"));
-    if (!repayment) return;
-
-    const adminFee = 12;
-    const openingBalance = amount + adminFee;
-
-    await supabase.from("loans").insert([
-      {
-        church_id: selectedChurch,
-        principal: amount,
-        admin_fee: adminFee,
-        balance: openingBalance,
-        repayment_amount: repayment,
-        interest_rate: 5,
-        interest_applied: false,
-        loan_ref: "TMS-" + Date.now(),
-        start_date: new Date(),
-        status: "Active"
-      }
-    ]);
-
-    fetchData();
-  }
-
-  async function addPayment() {
-    if (!selectedChurch) {
-      alert("Select a church first");
-      return;
-    }
-
-    const churchLoans = loans.filter(
-      (loan) => loan.church_id === selectedChurch
-    );
-
-    if (!churchLoans.length) {
-      alert("No loan found for this church.");
-      return;
-    }
-
-    const loan = churchLoans[0];
-    const amount = Number(prompt("Enter Payment Amount"));
-    if (!amount) return;
-
-    const newBalance = loan.balance - amount;
-
-    await supabase.from("payments").insert([
-      {
-        loan_id: loan.id,
-        amount,
-        payment_date: new Date()
-      }
-    ]);
-
-    await supabase
+    const { data: loansData } = await supabase
       .from("loans")
-      .update({ balance: newBalance })
-      .eq("id", loan.id);
+      .select("*");
 
-    fetchData();
+    const { data: churchesData } = await supabase
+      .from("churches")
+      .select("*");
+
+    setLoans(loansData || []);
+    setChurches(churchesData || []);
   }
 
-  async function applyInterest() {
-    for (const loan of loans) {
-      if (!loan.interest_applied) {
-        const interest = loan.balance * 0.05;
-        const newBalance = loan.balance + interest;
-
-        await supabase
-          .from("loans")
-          .update({
-            balance: newBalance,
-            interest_applied: true
-          })
-          .eq("id", loan.id);
-      }
-    }
-
-    fetchData();
+  function toggleTheme() {
+    setDarkMode(!darkMode);
+    document.body.className = darkMode ? "light" : "dark";
   }
-
-  // ---------------- CALCULATIONS ----------------
-
-  const totalOutstanding = loans.reduce(
-    (sum, loan) => sum + (loan.balance || 0),
-    0
-  );
-
-  const selectedChurchLoans = loans.filter(
-    (loan) => loan.church_id === selectedChurch
-  );
-
-  const selectedChurchOutstanding = selectedChurchLoans.reduce(
-    (sum, loan) => sum + (loan.balance || 0),
-    0
-  );
-
-  const projectedInterest = totalOutstanding * 0.05;
-
-  // ---------------- LOGIN ----------------
-
-  if (!loggedIn) {
-    return (
-      <div style={centerStyle}>
-        <div style={cardStyle}>
-          <h2>Toomaga Payment System</h2>
-          <button
-            style={buttonStyle}
-            onClick={() => setLoggedIn(true)}
-          >
-            Login (Demo)
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ---------------- DASHBOARD ----------------
 
   return (
-    <div style={centerStyle}>
-      <div style={{ width: "100%", maxWidth: 1200 }}>
-        <h1 style={{ textAlign: "center" }}>
-          Toomaga Payment System
-        </h1>
+    <div style={containerStyle}>
+      <h1>Toomaga Payment System</h1>
 
-        <div style={statsContainer}>
-          <StatCard title="Total Loans" value={loans.length} />
-          <StatCard
-            title="Total Outstanding"
-            value={formatCurrency(totalOutstanding)}
-          />
-          <StatCard
-            title="Projected 12M Interest"
-            value={formatCurrency(projectedInterest)}
-          />
-        </div>
+      <ActionBar toggleTheme={toggleTheme} darkMode={darkMode} />
 
-        {selectedChurch && (
-          <div style={{ marginBottom: 20 }}>
-            <strong>
-              Selected Church Outstanding:{" "}
-              {formatCurrency(selectedChurchOutstanding)}
-            </strong>
-          </div>
-        )}
+      <SummaryCards loans={loans} />
 
-        <div style={cardStyle}>
-          <div style={{ marginBottom: 20 }}>
-            <label style={{ fontWeight: 600 }}>
-              Select Church:
-            </label>
+      <ChurchSummaryTable loans={loans} churches={churches} />
 
-            <select
-              value={selectedChurch}
-              onChange={(e) => setSelectedChurch(e.target.value)}
-              style={selectStyle}
-            >
-              <option value="">-- Choose Church --</option>
-              {churches.map((church) => (
-                <option key={church.id} value={church.id}>
-                  {church.church_name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div style={buttonRow}>
-            <button style={buttonStyle} onClick={createLoan}>
-              Create Loan
-            </button>
-            <button style={buttonStyle} onClick={addPayment}>
-              Add Payment
-            </button>
-            <button style={buttonStyle} onClick={applyInterest}>
-              Apply 5% Interest
-            </button>
-          </div>
-        </div>
-
-        {/* LOAN TABLE */}
-
-        <div style={cardStyle}>
-          <h3>Loan Applications</h3>
-
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#f1f5f9" }}>
-                <th style={thStyle}>Loan Ref</th>
-                <th style={thStyle}>Church</th>
-                <th style={thStyle}>Principal</th>
-                <th style={thStyle}>Balance</th>
-                <th style={thStyle}>Repayment</th>
-                <th style={thStyle}>Status</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {loans.map((loan) => {
-                const church = churches.find(
-                  (c) => c.id === loan.church_id
-                );
-
-                return (
-                  <tr key={loan.id}>
-                    <td style={tdStyle}>{loan.loan_ref}</td>
-                    <td style={tdStyle}>{church?.church_name}</td>
-                    <td style={tdStyle}>
-                      {formatCurrency(loan.principal)}
-                    </td>
-                    <td style={tdStyle}>
-                      {formatCurrency(loan.balance)}
-                    </td>
-                    <td style={tdStyle}>
-                      {formatCurrency(loan.repayment_amount)}
-                    </td>
-                    <td style={tdStyle}>
-                      {loan.status || "Active"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <LoanListTable
+        loans={loans}
+        churches={churches}
+        onSelect={(loan) => alert("Open loan details")}
+      />
     </div>
   );
 }
 
-// ---------------- COMPONENTS ----------------
-
-function StatCard({ title, value }) {
-  return (
-    <div style={statCardStyle}>
-      <h3>{title}</h3>
-      <p style={{ fontSize: 22, fontWeight: 600 }}>{value}</p>
-    </div>
-  );
-}
-
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-NZ", {
-    style: "currency",
-    currency: "NZD"
-  }).format(value || 0);
-}
-
-// ---------------- STYLES ----------------
-
-const centerStyle = {
-  minHeight: "100vh",
-  background: "#f5f7fa",
-  display: "flex",
-  justifyContent: "center",
-  padding: 40
-};
-
-const cardStyle = {
-  background: "white",
-  padding: 30,
-  borderRadius: 12,
-  boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-  marginBottom: 30
-};
-
-const statCardStyle = {
-  background: "white",
-  padding: 20,
-  borderRadius: 12,
-  boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-  flex: 1
-};
-
-const statsContainer = {
-  display: "flex",
-  gap: 20,
-  marginBottom: 30
-};
-
-const buttonRow = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 10
-};
-
-const buttonStyle = {
-  padding: "10px 18px",
-  borderRadius: 8,
-  border: "none",
-  background: "#2563eb",
-  color: "white",
-  cursor: "pointer"
-};
-
-const selectStyle = {
-  display: "block",
-  marginTop: 10,
-  padding: 10,
-  borderRadius: 8,
-  border: "1px solid #ccc",
-  minWidth: 250
-};
-
-const thStyle = {
-  padding: 10,
-  textAlign: "left",
-  borderBottom: "1px solid #ddd"
-};
-
-const tdStyle = {
-  padding: 10,
-  borderBottom: "1px solid #eee"
+const containerStyle = {
+  padding: "40px",
 };
