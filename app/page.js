@@ -3,16 +3,25 @@
 import { useEffect, useState } from "react";
 import SummaryCards from "./components/SummaryCards";
 import LoanListTable from "./components/LoanListTable";
+import ActionBar from "./components/ActionBar";
 
 export default function Dashboard() {
   const [loans, setLoans] = useState([]);
+  const [churches, setChurches] = useState([]);
+  const [selectedChurch, setSelectedChurch] = useState("");
 
   useEffect(() => {
-    // TEMP MOCK DATA (replace with Supabase later)
+    // TEMP MOCK DATA
+    setChurches([
+      { id: "1", church_name: "EFKS Ranui" },
+      { id: "2", church_name: "EFKS Kingsland" },
+    ]);
+
     setLoans([
       {
         id: 1,
         loan_ref: "TMS-001",
+        church_id: "1",
         church_name: "EFKS Ranui",
         principal: 10000,
         balance: 10012,
@@ -21,6 +30,7 @@ export default function Dashboard() {
       {
         id: 2,
         loan_ref: "TMS-002",
+        church_id: "2",
         church_name: "EFKS Kingsland",
         principal: 80000,
         balance: 58412,
@@ -28,6 +38,15 @@ export default function Dashboard() {
       },
     ]);
   }, []);
+
+  const handleCreateLoan = () => {
+    if (!selectedChurch) {
+      alert("Please select a church first.");
+      return;
+    }
+
+    alert("Loan creation logic goes here.");
+  };
 
   return (
     <div
@@ -54,6 +73,13 @@ export default function Dashboard() {
         </h1>
 
         <SummaryCards loans={loans} />
+
+        <ActionBar
+          churches={churches}
+          selectedChurch={selectedChurch}
+          setSelectedChurch={setSelectedChurch}
+          onCreateLoan={handleCreateLoan}
+        />
 
         <LoanListTable loans={loans} />
       </div>
