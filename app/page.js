@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createServerClient } from "./lib/supabaseServer";
 import SummaryCards from "./components/SummaryCards";
 import LoanTable from "./components/LoanListTable";
