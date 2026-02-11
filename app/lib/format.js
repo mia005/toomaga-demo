@@ -1,7 +1,8 @@
-export const currency = (amount) => {
-  if (!amount) return "$0.00";
+export function currency(value) {
+  if (!value) return "$0.00";
+
   return new Intl.NumberFormat("en-NZ", {
     style: "currency",
     currency: "NZD",
-  }).format(amount);
-};
+  }).format(Number(value));
+}
