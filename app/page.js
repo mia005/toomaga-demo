@@ -133,7 +133,15 @@ export default function Home() {
 
       <h2>Dashboard</h2>
       <p>Total Loans: {loans.length}</p>
-      <p>Total Outstanding: ${totalOutstanding}</p>
+     <p>
+  Total Outstanding:{" "}
+  {totalOutstanding.toLocaleString("en-NZ", {
+    style: "currency",
+    currency: "NZD"
+  })}
+</p>
+
+
 
       <hr />
 
@@ -161,7 +169,10 @@ export default function Home() {
       <ul>
         {loans.map((l) => (
           <li key={l.id}>
-            Loan ID: {l.id} | Principal: ${l.principal} | Balance: ${l.balance}
+            Loan ID: {l.id} |
+Principal: {Number(l.principal).toLocaleString("en-NZ", { style: "currency", currency: "NZD" })} |
+Balance: {Number(l.balance).toLocaleString("en-NZ", { style: "currency", currency: "NZD" })}
+
           </li>
         ))}
       </ul>
