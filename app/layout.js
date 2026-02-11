@@ -1,3 +1,5 @@
+import "./globals.css";
+
 export const metadata = {
   title: "Toomaga Payment System",
   description: "Live Demo"
