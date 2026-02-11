@@ -16,53 +16,46 @@ export default function AddPaymentForm({ loanId }) {
     e.preventDefault();
     setLoading(true);
 
-    const paymentAmount = Number(amount);
-
-    if (!paymentAmount || paymentAmount <= 0) {
-      alert("Enter valid payment amount");
+    if (!amount || Number(amount) <= 0) {
+      alert("Enter valid amount");
       setLoading(false);
       return;
     }
 
     // Insert payment
-    const handleSubmit = async (e) => {
-  e.preventDefault();
+    const { error } = await supabase.from("payments").insert([
+      {
+        loan_id: loanId,
+        amount: Number(amount),
+        payment_date: new Date(),
+      },
+    ]);
 
-  const paymentAmount = Number(amount);
+    if (error) {
+      alert(error.message);
+      setLoading(false);
+      return;
+    }
 
-  // 1️⃣ Get latest loan balance
-  const { data: loan } = await supabase
-    .from("loans")
-    .select("*")
-    .eq("id", loanId)
-    .single();
+    // Reduce loan balance
+    const { data: loan } = await supabase
+      .from("loans")
+      .select("balance")
+      .eq("id", loanId)
+      .single();
 
-  if (!loan) return;
+    const newBalance = Number(loan.balance) - Number(amount);
 
-  const newBalance = Number(loan.balance) - paymentAmount;
+    await supabase
+      .from("loans")
+      .update({ balance: newBalance })
+      .eq("id", loanId);
 
-  // 2️⃣ Insert payment
-  await supabase.from("payments").insert({
-    loan_id: loanId,
-    amount: paymentAmount,
-    payment_date: new Date(),
-  });
-
-  // 3️⃣ Update balance
-  await supabase
-    .from("loans")
-    .update({
-      balance: newBalance,
-      status: newBalance <= 0 ? "COMPLETED" : "ACTIVE",
-    })
-    .eq("id", loanId);
-
-  window.location.reload();
-};
-
+    window.location.reload();
+  };
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginBottom: "30px" }}>
+    <form onSubmit={handleSubmit} style={{ marginTop: 20 }}>
       <h3>Add Payment</h3>
 
       <input
@@ -70,18 +63,23 @@ export default function AddPaymentForm({ loanId }) {
         placeholder="Enter amount"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
-        style={{ padding: "8px", marginRight: "10px" }}
+        style={{
+          padding: 10,
+          marginRight: 10,
+          border: "1px solid #ccc",
+          borderRadius: 6,
+        }}
       />
 
       <button
         type="submit"
         disabled={loading}
         style={{
-          padding: "8px 16px",
-          background: "#0070f3",
+          padding: "10px 16px",
+          background: "#2563eb",
           color: "white",
           border: "none",
-          borderRadius: "6px",
+          borderRadius: 6,
           cursor: "pointer",
         }}
       >
