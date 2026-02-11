@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic"; // prevents static build errors
+export const dynamic = "force-dynamic";
 
 export default async function Page() {
   const supabase = createClient(
@@ -15,64 +15,80 @@ export default async function Page() {
     .order("created_at", { ascending: false });
 
   const totalLoans = loans?.length || 0;
+
   const totalOutstanding =
     loans?.reduce((sum, l) => sum + Number(l.balance), 0) || 0;
 
   const projectedInterest =
-    loans?.reduce((sum, l) => sum + (l.balance * 0.05), 0) || 0;
+    loans?.reduce((sum, l) => sum + Number(l.balance) * 0.05, 0) || 0;
 
   return (
-    <div className="container">
-      <h1>Toomaga Payment System</h1>
+    <div className="dashboard-container">
+      <h1 className="dashboard-title">Toomaga Payment System</h1>
 
+      {/* Stats */}
       <div className="stats-grid">
-        <div className="card">
+        <div className="stat-card">
           <h3>Total Loans</h3>
           <p>{totalLoans}</p>
         </div>
 
-        <div className="card">
+        <div className="stat-card">
           <h3>Total Outstanding</h3>
           <p>${totalOutstanding.toLocaleString()}</p>
         </div>
 
-        <div className="card">
+        <div className="stat-card">
           <h3>Projected 12M Interest</h3>
           <p>${projectedInterest.toLocaleString()}</p>
         </div>
       </div>
 
-      <div className="loan-header">
-        <h2>Loan Applications</h2>
-        <Link href="/create">
-          <button className="primary-btn">+ Create Loan</button>
-        </Link>
-      </div>
+      {/* Loan Table */}
+      <div className="table-section">
+        <div className="table-header">
+          <h2>Loan Applications</h2>
+          <Link href="/create">
+            <button className="primary-btn">+ Create Loan</button>
+          </Link>
+        </div>
 
-      <table className="loan-table">
-        <thead>
-          <tr>
-            <th>Loan Ref</th>
-            <th>Principal</th>
-            <th>Balance</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loans?.map((loan) => (
-            <tr key={loan.id}>
-              <td>
-                <Link href={`/loans/${loan.id}`}>
-                  {loan.loan_ref}
-                </Link>
-              </td>
-              <td>${loan.principal.toLocaleString()}</td>
-              <td>${loan.balance.toLocaleString()}</td>
-              <td>{loan.status}</td>
+        <table className="loan-table">
+          <thead>
+            <tr>
+              <th>Loan Ref</th>
+              <th>Principal</th>
+              <th>Balance</th>
+              <th>Status</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {loans?.map((loan) => (
+              <tr key={loan.id}>
+                <td>
+                  <Link href={`/loans/${loan.id}`}>
+                    {loan.loan_ref}
+                  </Link>
+                </td>
+                <td>${Number(loan.principal).toLocaleString()}</td>
+                <td>${Number(loan.balance).toLocaleString()}</td>
+                <td>
+                  <span
+                    className={
+                      loan.status === "COMPLETED"
+                        ? "status-complete"
+                        : "status-active"
+                    }
+                  >
+                    {loan.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
