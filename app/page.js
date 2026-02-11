@@ -1,4 +1,36 @@
 "use client";
+<div style={{ marginBottom: 20 }}>
+  <label style={{ fontWeight: 600, marginRight: 10 }}>
+    Select Church:
+  </label>
+if (!selectedChurch) {
+  alert("Please select a church");
+  return;
+}
+
+  <select
+    value={selectedChurch}
+    onChange={(e) => setSelectedChurch(e.target.value)}
+    style={{
+      padding: "10px 14px",
+      borderRadius: 8,
+      border: "1px solid #ccc",
+      minWidth: 250,
+      fontSize: 14
+    }}
+  >
+    <option value="">-- Choose Church --</option>
+
+    {churches.map((church) => (
+      <option key={church.id} value={church.id}>
+        {church.church_name}
+      </option>
+    ))}
+  </select>
+</div>
+
+
+const [selectedChurch, setSelectedChurch] = useState("");
 
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
