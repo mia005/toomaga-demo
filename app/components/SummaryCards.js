@@ -1,22 +1,13 @@
-export default function SummaryCards() {
-  return <div>Summary Cards</div>;
-}
-
 import { currency } from "../lib/format";
+import {
+  calculateTotalOutstanding,
+  calculateProjectedInterest,
+} from "../lib/calculations";
 
 export default function SummaryCards({ loans }) {
   const totalLoans = loans.length;
-
-  const totalOutstanding = loans.reduce(
-    (sum, loan) => sum + (loan.balance || 0),
-    0
-  );
-
-  const projectedInterest = loans.reduce(
-    (sum, loan) =>
-      sum + (loan.balance || 0) * (loan.interest_rate / 100),
-    0
-  );
+  const totalOutstanding = calculateTotalOutstanding(loans);
+  const projectedInterest = calculateProjectedInterest(loans);
 
   return (
     <div style={gridStyle}>
@@ -43,11 +34,12 @@ const gridStyle = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
   gap: "20px",
+  marginBottom: "40px",
 };
 
 const cardStyle = {
   padding: "20px",
   borderRadius: "12px",
-  background: "var(--card-bg)",
+  background: "white",
   boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
 };
