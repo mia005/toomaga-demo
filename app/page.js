@@ -1,36 +1,4 @@
 "use client";
-<div style={{ marginBottom: 20 }}>
-  <label style={{ fontWeight: 600, marginRight: 10 }}>
-    Select Church:
-  </label>
-if (!selectedChurch) {
-  alert("Please select a church");
-  return;
-}
-
-  <select
-    value={selectedChurch}
-    onChange={(e) => setSelectedChurch(e.target.value)}
-    style={{
-      padding: "10px 14px",
-      borderRadius: 8,
-      border: "1px solid #ccc",
-      minWidth: 250,
-      fontSize: 14
-    }}
-  >
-    <option value="">-- Choose Church --</option>
-
-    {churches.map((church) => (
-      <option key={church.id} value={church.id}>
-        {church.church_name}
-      </option>
-    ))}
-  </select>
-</div>
-
-
-const [selectedChurch, setSelectedChurch] = useState("");
 
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
@@ -40,60 +8,45 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-export default function Home() {
+export default function Page() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [churches, setChurches] = useState([]);
   const [loans, setLoans] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [selectedChurch, setSelectedChurch] = useState("");
 
   useEffect(() => {
     if (loggedIn) fetchData();
   }, [loggedIn]);
 
   async function fetchData() {
-    const { data: churchesData } = await supabase.from("churches").select("*");
-    const { data: loansData } = await supabase.from("loans").select("*");
+    const { data: churchesData } = await supabase
+      .from("churches")
+      .select("*");
+
+    const { data: loansData } = await supabase
+      .from("loans")
+      .select("*");
+
+    const { data: paymentsData } = await supabase
+      .from("payments")
+      .select("*");
 
     setChurches(churchesData || []);
     setLoans(loansData || []);
+    setPayments(paymentsData || []);
   }
 
-  // ================= LOGIN =================
-
-  function handleLogin() {
-    const email = prompt("Enter Email");
-    const password = prompt("Enter Password");
-
-    if (email === "admin@toomaga.nz" && password === "demo123") {
-      setLoggedIn(true);
-    } else {
-      alert("Invalid credentials (Demo: admin@toomaga.nz / demo123)");
-    }
-  }
-
-  if (!loggedIn) {
-    return (
-      <div style={loginWrapper}>
-        <div style={loginCard}>
-          <h2>Toomaga Payment System</h2>
-          <p>Admin Login</p>
-          <button style={btnStyle} onClick={handleLogin}>
-            Login
-          </button>
-          <p style={{ fontSize: 12, marginTop: 15 }}>
-            Demo: admin@toomaga.nz / demo123
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ================= ACTIONS =================
+  // ------------------ FUNCTIONS ------------------
 
   async function createLoan() {
-    const churchId = prompt("Enter Church ID");
-    const amount = Number(prompt("Enter Loan Amount"));
+    if (!selectedChurch) {
+      alert("Please select a church");
+      return;
+    }
 
-    if (!churchId || !amount) return;
+    const amount = Number(prompt("Enter Loan Amount"));
+    if (!amount) return;
 
     if (amount > 80000) {
       alert("Loan cannot exceed $80,000");
@@ -104,10 +57,12 @@ export default function Home() {
 
     await supabase.from("loans").insert([
       {
-        church_id: churchId,
+        church_id: selectedChurch,
         principal: amount,
         admin_fee: 120,
         balance: openingBalance,
+        interest_rate: 5,
+        interest_applied: false,
         loan_ref: "TMS-" + Date.now(),
         start_date: new Date()
       }
@@ -117,228 +72,278 @@ export default function Home() {
   }
 
   async function addPayment() {
-    const loanId = prompt("Enter Loan ID");
+    if (!selectedChurch) {
+      alert("Please select a church");
+      return;
+    }
+
+    const churchLoans = loans.filter(
+      (loan) => loan.church_id === selectedChurch
+    );
+
+    if (!churchLoans.length) {
+      alert("No loan found for this church.");
+      return;
+    }
+
+    const loan = churchLoans[0];
+
     const amount = Number(prompt("Enter Payment Amount"));
-
-    if (!loanId || !amount) return;
-
-    const { data: loan } = await supabase
-      .from("loans")
-      .select("*")
-      .eq("id", loanId)
-      .single();
-
-    if (!loan) return;
+    if (!amount) return;
 
     const newBalance = loan.balance - amount;
 
     await supabase.from("payments").insert([
-      { loan_id: loanId, amount, payment_date: new Date() }
+      {
+        loan_id: loan.id,
+        amount,
+        payment_date: new Date()
+      }
     ]);
 
-    await supabase.from("loans")
+    await supabase
+      .from("loans")
       .update({ balance: newBalance })
-      .eq("id", loanId);
+      .eq("id", loan.id);
 
     fetchData();
   }
 
   async function applyInterest() {
-    const loanId = prompt("Enter Loan ID");
+    for (const loan of loans) {
+      if (!loan.interest_applied) {
+        const interest = loan.balance * 0.05;
+        const newBalance = loan.balance + interest;
 
-    if (!loanId) return;
-
-    const { data: loan } = await supabase
-      .from("loans")
-      .select("*")
-      .eq("id", loanId)
-      .single();
-
-    if (!loan) return;
-
-    const interestAmount = loan.balance * 0.05;
-    const newBalance = loan.balance + interestAmount;
-
-    await supabase.from("loans")
-      .update({ balance: newBalance })
-      .eq("id", loanId);
+        await supabase
+          .from("loans")
+          .update({
+            balance: newBalance,
+            interest_applied: true
+          })
+          .eq("id", loan.id);
+      }
+    }
 
     fetchData();
   }
 
-  // ================= EXPORT FUNCTIONS =================
+  function exportCSV() {
+    let csv = "Loan Ref,Church,Principal,Balance\n";
 
-  function exportCSV(data, filename) {
-    if (!data.length) return alert("No data available");
+    loans.forEach((loan) => {
+      const church = churches.find((c) => c.id === loan.church_id);
+      csv += `${loan.loan_ref},${church?.church_name},${loan.principal},${loan.balance}\n`;
+    });
 
-    const headers = Object.keys(data[0]);
-    const rows = data.map(row =>
-      headers.map(h => `"${row[h] ?? ""}"`).join(",")
+    downloadFile(csv, "portfolio.csv", "text/csv");
+  }
+
+  function exportLoanReport() {
+    if (!selectedChurch) {
+      alert("Select a church first");
+      return;
+    }
+
+    const churchLoans = loans.filter(
+      (loan) => loan.church_id === selectedChurch
     );
 
-    const csvContent = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
+    let csv = "Loan Ref,Principal,Balance\n";
 
+    churchLoans.forEach((loan) => {
+      csv += `${loan.loan_ref},${loan.principal},${loan.balance}\n`;
+    });
+
+    downloadFile(csv, "loan_report.csv", "text/csv");
+  }
+
+  function exportPDF() {
+    let content = "Toomaga Loan Report\n\n";
+
+    loans.forEach((loan) => {
+      const church = churches.find((c) => c.id === loan.church_id);
+      content += `Loan: ${loan.loan_ref}\n`;
+      content += `Church: ${church?.church_name}\n`;
+      content += `Balance: $${loan.balance}\n\n`;
+    });
+
+    downloadFile(content, "report.pdf", "application/pdf");
+  }
+
+  function downloadFile(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     a.click();
   }
 
-  function exportFullPortfolio() {
-    const portfolio = loans.map(l => ({
-      LoanID: l.id,
-      Principal: l.principal,
-      Balance: l.balance,
-      AdminFee: l.admin_fee
-    }));
-
-    exportCSV(portfolio, "Toomaga_Full_Portfolio.csv");
-  }
-
-  async function generateLoanReport() {
-    const loanId = prompt("Enter Loan ID");
-    if (!loanId) return;
-
-    const { data: loan } = await supabase
-      .from("loans")
-      .select("*")
-      .eq("id", loanId)
-      .single();
-
-    const { data: payments } = await supabase
-      .from("payments")
-      .select("*")
-      .eq("loan_id", loanId);
-
-    if (!loan) return;
-
-    const totalPayments =
-      payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
-
-    const report = [{
-      LoanID: loan.id,
-      Principal: loan.principal,
-      AdminFee: loan.admin_fee,
-      TotalPayments: totalPayments,
-      CurrentBalance: loan.balance
-    }];
-
-    exportCSV(report, `Loan_Report_${loan.id}.csv`);
-  }
-
-  function exportPDFView() {
-    window.print();
-  }
-
-  // ================= DASHBOARD =================
-
   const totalOutstanding = loans.reduce(
-    (sum, l) => sum + (l.balance || 0),
+    (sum, loan) => sum + (loan.balance || 0),
     0
   );
 
   const projectedInterest = totalOutstanding * 0.05;
 
-  return (
-    <div style={wrapperStyle}>
-      <div style={{ maxWidth: 1100, width: "100%" }}>
-        <h1>Toomaga Payment System</h1>
+  // ------------------ LOGIN ------------------
 
-        <div style={dashboardRow}>
-          <DashboardCard title="Total Loans" value={loans.length} />
-          <DashboardCard
+  if (!loggedIn) {
+    return (
+      <div style={centerStyle}>
+        <div style={cardStyle}>
+          <h2>Toomaga Payment System</h2>
+          <button
+            style={buttonStyle}
+            onClick={() => setLoggedIn(true)}
+          >
+            Login (Demo)
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ------------------ DASHBOARD ------------------
+
+  return (
+    <div style={centerStyle}>
+      <div style={{ width: "100%", maxWidth: 1100 }}>
+        <h1 style={{ textAlign: "center" }}>
+          Toomaga Payment System
+        </h1>
+
+        <div style={statsContainer}>
+          <StatCard title="Total Loans" value={loans.length} />
+          <StatCard
             title="Total Outstanding"
-            value={formatNZD(totalOutstanding)}
+            value={formatCurrency(totalOutstanding)}
           />
-          <DashboardCard
+          <StatCard
             title="Projected 12M Interest"
-            value={formatNZD(projectedInterest)}
+            value={formatCurrency(projectedInterest)}
           />
         </div>
 
         <div style={cardStyle}>
-          <button style={btnStyle} onClick={createLoan}>Create Loan</button>
-          <button style={btnStyle} onClick={addPayment}>Add Payment</button>
-          <button style={btnStyle} onClick={applyInterest}>Apply 5% Interest</button>
-          <button style={btnStyle} onClick={exportFullPortfolio}>Export Full Portfolio (CSV)</button>
-          <button style={btnStyle} onClick={generateLoanReport}>Generate Loan Report (CSV)</button>
-          <button style={btnStyle} onClick={exportPDFView}>Export PDF</button>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ fontWeight: 600 }}>
+              Select Church:
+            </label>
+
+            <select
+              value={selectedChurch}
+              onChange={(e) => setSelectedChurch(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">-- Choose Church --</option>
+              {churches.map((church) => (
+                <option key={church.id} value={church.id}>
+                  {church.church_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={buttonRow}>
+            <button style={buttonStyle} onClick={createLoan}>
+              Create Loan
+            </button>
+            <button style={buttonStyle} onClick={addPayment}>
+              Add Payment
+            </button>
+            <button style={buttonStyle} onClick={applyInterest}>
+              Apply 5% Interest
+            </button>
+            <button style={buttonStyle} onClick={exportCSV}>
+              Export Portfolio CSV
+            </button>
+            <button style={buttonStyle} onClick={exportLoanReport}>
+              Loan Report CSV
+            </button>
+            <button style={buttonStyle} onClick={exportPDF}>
+              Export PDF
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// ================= COMPONENTS =================
+// ------------------ COMPONENTS ------------------
 
-function DashboardCard({ title, value }) {
+function StatCard({ title, value }) {
   return (
-    <div style={cardStyle}>
+    <div style={statCardStyle}>
       <h3>{title}</h3>
-      <p style={{ fontSize: 24, fontWeight: "bold" }}>{value}</p>
+      <p style={{ fontSize: 22, fontWeight: 600 }}>{value}</p>
     </div>
   );
 }
 
-function formatNZD(amount) {
-  return amount.toLocaleString("en-NZ", {
+// ------------------ HELPERS ------------------
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("en-NZ", {
     style: "currency",
     currency: "NZD"
-  });
+  }).format(value || 0);
 }
 
-// ================= STYLES =================
+// ------------------ STYLES ------------------
 
-const wrapperStyle = {
+const centerStyle = {
   minHeight: "100vh",
   background: "#f5f7fa",
-  padding: 40,
   display: "flex",
   justifyContent: "center",
-  fontFamily: "Segoe UI"
+  padding: 40
 };
 
-const loginWrapper = {
-  height: "100vh",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  background: "#f5f7fa"
-};
-
-const loginCard = {
+const cardStyle = {
   background: "white",
-  padding: 40,
-  borderRadius: 10,
-  boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
-  textAlign: "center",
-  width: 350
+  padding: 30,
+  borderRadius: 12,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+  marginBottom: 30
 };
 
-const dashboardRow = {
+const statCardStyle = {
+  background: "white",
+  padding: 20,
+  borderRadius: 12,
+  boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+  flex: 1
+};
+
+const statsContainer = {
   display: "flex",
   gap: 20,
   marginBottom: 30
 };
 
-const cardStyle = {
-  background: "white",
-  padding: 20,
-  borderRadius: 10,
-  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-  marginBottom: 20,
-  flex: 1
+const buttonRow = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 10
 };
 
-const btnStyle = {
-  marginRight: 10,
-  marginBottom: 10,
+const buttonStyle = {
   padding: "10px 18px",
-  borderRadius: 6,
+  borderRadius: 8,
   border: "none",
   background: "#2563eb",
   color: "white",
   cursor: "pointer"
+};
+
+const selectStyle = {
+  display: "block",
+  marginTop: 10,
+  padding: 10,
+  borderRadius: 8,
+  border: "1px solid #ccc",
+  minWidth: 250
 };
