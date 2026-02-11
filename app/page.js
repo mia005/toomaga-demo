@@ -52,6 +52,21 @@ export default function Dashboard() {
           setSelectedChurch={setSelectedChurch}
           onCreateLoan={() => setShowModal(true)}
         />
+<h3 style={{ marginTop: "40px" }}>Add Payment</h3>
+
+<div style={paymentBox}>
+  <input
+    type="number"
+    placeholder="Enter payment amount"
+    value={paymentAmount}
+    onChange={(e) => setPaymentAmount(e.target.value)}
+    style={inputStyle}
+  />
+
+  <button onClick={handleAddPayment} style={buttonStyle}>
+    Add Payment
+  </button>
+</div>
 
         <LoanListTable loans={loans} />
 
