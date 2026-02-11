@@ -1,65 +1,62 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import SummaryCards from "./components/SummaryCards";
-import ChurchSummaryTable from "./components/ChurchSummaryTable";
 import LoanListTable from "./components/LoanListTable";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
 
 export default function Dashboard() {
   const [loans, setLoans] = useState([]);
-  const [churches, setChurches] = useState([]);
 
   useEffect(() => {
-    fetchData();
+    // TEMP MOCK DATA (replace with Supabase later)
+    setLoans([
+      {
+        id: 1,
+        loan_ref: "TMS-001",
+        church_name: "EFKS Ranui",
+        principal: 10000,
+        balance: 10012,
+        interest_rate: 5,
+      },
+      {
+        id: 2,
+        loan_ref: "TMS-002",
+        church_name: "EFKS Kingsland",
+        principal: 80000,
+        balance: 58412,
+        interest_rate: 5,
+      },
+    ]);
   }, []);
 
-  async function fetchData() {
-    const { data: loansData } = await supabase
-      .from("loans")
-      .select("*");
-
-    const { data: churchesData } = await supabase
-      .from("churches")
-      .select("*");
-
-    setLoans(loansData || []);
-    setChurches(churchesData || []);
-  }
-
   return (
-    <div style={containerStyle}>
-      <h1 style={{ marginBottom: "40px" }}>
-        Toomaga Payment System
-      </h1>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f5f7fa",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "1100px",
+          margin: "0 auto",
+          padding: "40px 20px",
+        }}
+      >
+        <h1
+          style={{
+            fontSize: "28px",
+            fontWeight: "700",
+            marginBottom: "30px",
+          }}
+        >
+          Toomaga Payment System
+        </h1>
 
-      <SummaryCards loans={loans} />
+        <SummaryCards loans={loans} />
 
-      <ChurchSummaryTable loans={loans} churches={churches} />
-
-      <LoanListTable loans={loans} churches={churches} />
+        <LoanListTable loans={loans} />
+      </div>
     </div>
   );
 }
-
-const containerStyle = {
-  maxWidth: "1200px",
-  margin: "0 auto",
-  padding: "40px",
-  background: "#f5f7fa",
-  minHeight: "100vh",
-};
-
-<div
-  style={{
-    maxWidth: "1100px",
-    margin: "0 auto",
-    padding: "40px 20px",
-  }}
->
-
