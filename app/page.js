@@ -1,6 +1,6 @@
 import { createServerClient } from "./lib/supabaseServer";
 import SummaryCards from "./components/SummaryCards";
-import LoanTable from "./components/LoanTable";
+import LoanTable from "./components/LoanListTable";
 import ActionBar from "./components/ActionBar";
 import DashboardLayout from "./components/DashboardLayout";
 
