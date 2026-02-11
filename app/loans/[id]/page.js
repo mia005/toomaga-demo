@@ -20,7 +20,7 @@ export default async function LoanDetail({ params }) {
     .from("payments")
     .select("*")
     .eq("loan_id", id)
-    .order("payment_date", { ascending: false });
+    .order("payment_date", { ascending: true });
 
   if (!loan) {
     return <div style={{ padding: "40px" }}>Loan not found</div>;
