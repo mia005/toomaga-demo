@@ -1,74 +1,46 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "./lib/supabase";
 import SummaryCards from "./components/SummaryCards";
 import LoanListTable from "./components/LoanListTable";
 import ActionBar from "./components/ActionBar";
+import LoanModal from "./components/LoanModal";
 
 export default function Dashboard() {
   const [loans, setLoans] = useState([]);
   const [churches, setChurches] = useState([]);
   const [selectedChurch, setSelectedChurch] = useState("");
+  const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    // TEMP MOCK DATA
-    setChurches([
-      { id: "1", church_name: "EFKS Ranui" },
-      { id: "2", church_name: "EFKS Kingsland" },
-    ]);
-
-    setLoans([
-      {
-        id: 1,
-        loan_ref: "TMS-001",
-        church_id: "1",
-        church_name: "EFKS Ranui",
-        principal: 10000,
-        balance: 10012,
-        interest_rate: 5,
-      },
-      {
-        id: 2,
-        loan_ref: "TMS-002",
-        church_id: "2",
-        church_name: "EFKS Kingsland",
-        principal: 80000,
-        balance: 58412,
-        interest_rate: 5,
-      },
-    ]);
-  }, []);
-
-  const handleCreateLoan = () => {
-    if (!selectedChurch) {
-      alert("Please select a church first.");
-      return;
-    }
-
-    alert("Loan creation logic goes here.");
+  const fetchChurches = async () => {
+    const { data } = await supabase.from("churches").select("*");
+    if (data) setChurches(data);
   };
 
+  const fetchLoans = async () => {
+    const { data } = await supabase
+      .from("loans")
+      .select("*, churches(church_name)");
+
+    if (data) {
+      const formatted = data.map((loan) => ({
+        ...loan,
+        church_name: loan.churches?.church_name,
+      }));
+      setLoans(formatted);
+    }
+  };
+
+  useEffect(() => {
+    fetchChurches();
+    fetchLoans();
+  }, []);
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f5f7fa",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "1100px",
-          margin: "0 auto",
-          padding: "40px 20px",
-        }}
-      >
-        <h1
-          style={{
-            fontSize: "28px",
-            fontWeight: "700",
-            marginBottom: "30px",
-          }}
-        >
+    <div style={{ minHeight: "100vh", background: "#f5f7fa" }}>
+      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "40px" }}>
+        <h1 style={{ marginBottom: "30px" }}>
           Toomaga Payment System
         </h1>
 
@@ -78,10 +50,20 @@ export default function Dashboard() {
           churches={churches}
           selectedChurch={selectedChurch}
           setSelectedChurch={setSelectedChurch}
-          onCreateLoan={handleCreateLoan}
+          onCreateLoan={() => setShowModal(true)}
         />
 
         <LoanListTable loans={loans} />
+
+        {showModal && (
+          <LoanModal
+            churches={churches}
+            selectedChurch={selectedChurch}
+            setSelectedChurch={setSelectedChurch}
+            onClose={() => setShowModal(false)}
+            onLoanCreated={fetchLoans}
+          />
+        )}
       </div>
     </div>
   );
