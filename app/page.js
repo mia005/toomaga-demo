@@ -1,4 +1,5 @@
 "use client";
+const [paymentAmount, setPaymentAmount] = useState("");
 
 import { useEffect, useState } from "react";
 import { supabase } from "./lib/supabase";
