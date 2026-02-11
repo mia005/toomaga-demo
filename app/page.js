@@ -9,12 +9,13 @@ const supabase = createClient(
 );
 
 export default function Home() {
+  const [loggedIn, setLoggedIn] = useState(false);
   const [churches, setChurches] = useState([]);
   const [loans, setLoans] = useState([]);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (loggedIn) fetchData();
+  }, [loggedIn]);
 
   async function fetchData() {
     const { data: churchesData } = await supabase.from("churches").select("*");
@@ -24,13 +25,61 @@ export default function Home() {
     setLoans(loansData || []);
   }
 
-  async function addChurch() {
-    const name = prompt("Enter Church Name");
-    if (!name) return;
+  // ---------------- LOGIN ----------------
 
-    await supabase.from("churches").insert([{ church_name: name }]);
-    fetchData();
+  function handleLogin() {
+    const email = prompt("Enter Email");
+    const password = prompt("Enter Password");
+
+    if (email === "admin@toomaga.nz" && password === "demo123") {
+      setLoggedIn(true);
+    } else {
+      alert("Invalid credentials (Demo Login: admin@toomaga.nz / demo123)");
+    }
   }
+
+  if (!loggedIn) {
+    return (
+      <div style={{
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#f5f7fa",
+        fontFamily: "Segoe UI"
+      }}>
+        <div style={{
+          background: "white",
+          padding: 40,
+          borderRadius: 10,
+          boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
+          textAlign: "center",
+          width: 350
+        }}>
+          <h2 style={{ marginBottom: 20 }}>Toomaga Payment System</h2>
+          <p style={{ marginBottom: 20 }}>Admin Login</p>
+          <button
+            onClick={handleLogin}
+            style={{
+              padding: "10px 20px",
+              background: "#2563eb",
+              color: "white",
+              border: "none",
+              borderRadius: 6,
+              cursor: "pointer"
+            }}
+          >
+            Login
+          </button>
+          <p style={{ marginTop: 20, fontSize: 12, color: "#777" }}>
+            Demo: admin@toomaga.nz / demo123
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------------- ACTIONS ----------------
 
   async function createLoan() {
     const churchId = prompt("Enter Church ID");
@@ -71,23 +120,15 @@ export default function Home() {
       .eq("id", loanId)
       .single();
 
-    if (!loan) {
-      alert("Loan not found");
-      return;
-    }
+    if (!loan) return;
 
     const newBalance = loan.balance - amount;
 
     await supabase.from("payments").insert([
-      {
-        loan_id: loanId,
-        amount: amount,
-        payment_date: new Date()
-      }
+      { loan_id: loanId, amount, payment_date: new Date() }
     ]);
 
-    await supabase
-      .from("loans")
+    await supabase.from("loans")
       .update({ balance: newBalance })
       .eq("id", loanId);
 
@@ -95,7 +136,7 @@ export default function Home() {
   }
 
   async function applyInterest() {
-    const loanId = prompt("Enter Loan ID to apply 5% interest");
+    const loanId = prompt("Enter Loan ID");
 
     if (!loanId) return;
 
@@ -105,58 +146,15 @@ export default function Home() {
       .eq("id", loanId)
       .single();
 
-    if (!loan) {
-      alert("Loan not found");
-      return;
-    }
+    if (!loan) return;
 
     const interestAmount = loan.balance * 0.05;
     const newBalance = loan.balance + interestAmount;
 
-    await supabase
-      .from("loans")
+    await supabase.from("loans")
       .update({ balance: newBalance })
       .eq("id", loanId);
 
-    alert("5% interest applied successfully");
-    fetchData();
-  }
-
-  async function addTopUp() {
-    const loanId = prompt("Enter Loan ID");
-    const amount = Number(prompt("Enter Top-Up Amount"));
-
-    if (!loanId || !amount) return;
-
-    const { data: loan } = await supabase
-      .from("loans")
-      .select("*")
-      .eq("id", loanId)
-      .single();
-
-    if (!loan) {
-      alert("Loan not found");
-      return;
-    }
-
-    const newPrincipalTotal = loan.principal + amount;
-
-    if (newPrincipalTotal > 80000) {
-      alert("Top-up denied. Total loan cannot exceed $80,000.");
-      return;
-    }
-
-    const newBalance = loan.balance + amount;
-
-    await supabase
-      .from("loans")
-      .update({
-        principal: newPrincipalTotal,
-        balance: newBalance
-      })
-      .eq("id", loanId);
-
-    alert("Top-up approved and added.");
     fetchData();
   }
 
@@ -165,89 +163,79 @@ export default function Home() {
     0
   );
 
-  const btnStyle = {
-    marginRight: 10,
-    padding: "10px 18px",
-    borderRadius: 6,
-    border: "none",
-    background: "#2563eb",
-    color: "white",
-    cursor: "pointer"
-  };
-
-  const cardStyle = {
-    background: "white",
-    padding: 20,
-    borderRadius: 10,
-    marginBottom: 30,
-    boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
-  };
+  const projectedInterest = totalOutstanding * 0.05;
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#f5f7fa",
-        padding: "40px",
-        fontFamily: "Segoe UI, sans-serif"
-      }}
-    >
-      <h1 style={{ marginBottom: 30, fontWeight: 600 }}>
-        Toomaga Payment System
-      </h1>
+    <div style={{
+      minHeight: "100vh",
+      background: "#f5f7fa",
+      padding: "40px",
+      display: "flex",
+      justifyContent: "center",
+      fontFamily: "Segoe UI"
+    }}>
+      <div style={{ width: "100%", maxWidth: 1100 }}>
 
-      <div style={{ display: "flex", gap: 20, marginBottom: 40 }}>
-        <div style={cardStyle}>
-          <h3>Total Loans</h3>
-          <p style={{ fontSize: 28, fontWeight: "bold" }}>{loans.length}</p>
-        </div>
+        <h1 style={{ marginBottom: 30 }}>Toomaga Payment System</h1>
 
-        <div style={cardStyle}>
-          <h3>Total Outstanding</h3>
-          <p style={{ fontSize: 28, fontWeight: "bold" }}>
-            {totalOutstanding.toLocaleString("en-NZ", {
+        <div style={{ display: "flex", gap: 20, marginBottom: 40 }}>
+          <DashboardCard title="Total Loans" value={loans.length} />
+          <DashboardCard
+            title="Total Outstanding"
+            value={totalOutstanding.toLocaleString("en-NZ", {
               style: "currency",
               currency: "NZD"
             })}
-          </p>
+          />
+          <DashboardCard
+            title="Projected 12M Interest"
+            value={projectedInterest.toLocaleString("en-NZ", {
+              style: "currency",
+              currency: "NZD"
+            })}
+          />
         </div>
-      </div>
 
-      <div style={cardStyle}>
-        <h3 style={{ marginBottom: 15 }}>Actions</h3>
-        <button style={btnStyle} onClick={addChurch}>Add Church</button>
-        <button style={btnStyle} onClick={createLoan}>Create Loan</button>
-        <button style={btnStyle} onClick={addPayment}>Add Payment</button>
-        <button style={btnStyle} onClick={applyInterest}>Apply 5% Interest</button>
-        <button style={btnStyle} onClick={addTopUp}>Add Top-Up</button>
-      </div>
+        <div style={cardStyle}>
+          <button style={btnStyle} onClick={createLoan}>Create Loan</button>
+          <button style={btnStyle} onClick={addPayment}>Add Payment</button>
+          <button style={btnStyle} onClick={applyInterest}>Apply 5% Interest</button>
+        </div>
 
-      <div style={cardStyle}>
-        <h3>Churches</h3>
-        <ul>
-          {churches.map((c) => (
-            <li key={c.id}>{c.church_name}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div style={cardStyle}>
-        <h3>Loans</h3>
-        <ul>
-          {loans.map((l) => (
-            <li key={l.id}>
-              Principal: {Number(l.principal).toLocaleString("en-NZ", {
-                style: "currency",
-                currency: "NZD"
-              })} | Balance:{" "}
-              {Number(l.balance).toLocaleString("en-NZ", {
-                style: "currency",
-                currency: "NZD"
-              })}
-            </li>
-          ))}
-        </ul>
       </div>
     </div>
   );
 }
+
+function DashboardCard({ title, value }) {
+  return (
+    <div style={{
+      flex: 1,
+      background: "white",
+      padding: 25,
+      borderRadius: 10,
+      boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+    }}>
+      <h3>{title}</h3>
+      <p style={{ fontSize: 26, fontWeight: "bold" }}>{value}</p>
+    </div>
+  );
+}
+
+const btnStyle = {
+  marginRight: 10,
+  padding: "10px 18px",
+  borderRadius: 6,
+  border: "none",
+  background: "#2563eb",
+  color: "white",
+  cursor: "pointer"
+};
+
+const cardStyle = {
+  background: "white",
+  padding: 20,
+  borderRadius: 10,
+  marginBottom: 30,
+  boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+};
