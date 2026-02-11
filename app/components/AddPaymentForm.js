@@ -16,73 +16,49 @@ export default function AddPaymentForm({ loanId }) {
     e.preventDefault();
     setLoading(true);
 
-    if (!amount || Number(amount) <= 0) {
-      alert("Enter valid amount");
-      setLoading(false);
-      return;
-    }
+    // 1️⃣ Insert Payment
+    await supabase.from("payments").insert({
+      loan_id: loanId,
+      amount: Number(amount),
+      payment_date: new Date().toISOString(),
+    });
 
-    // Insert payment
-    const { error } = await supabase.from("payments").insert([
-      {
-        loan_id: loanId,
-        amount: Number(amount),
-        payment_date: new Date(),
-      },
-    ]);
-
-    if (error) {
-      alert(error.message);
-      setLoading(false);
-      return;
-    }
-
-    // Reduce loan balance
+    // 2️⃣ Get Current Loan
     const { data: loan } = await supabase
       .from("loans")
-      .select("balance")
+      .select("*")
       .eq("id", loanId)
       .single();
 
     const newBalance = Number(loan.balance) - Number(amount);
 
+    // 3️⃣ Update Balance
     await supabase
       .from("loans")
-      .update({ balance: newBalance })
+      .update({
+        balance: newBalance,
+        status: newBalance <= 0 ? "COMPLETED" : loan.status,
+      })
       .eq("id", loanId);
 
+    setLoading(false);
     window.location.reload();
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginTop: 20 }}>
+    <form onSubmit={handleSubmit} style={{ marginBottom: "30px" }}>
       <h3>Add Payment</h3>
 
       <input
         type="number"
-        placeholder="Enter amount"
+        placeholder="Enter payment amount"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
-        style={{
-          padding: 10,
-          marginRight: 10,
-          border: "1px solid #ccc",
-          borderRadius: 6,
-        }}
+        required
+        style={{ padding: "8px", marginRight: "10px" }}
       />
 
-      <button
-        type="submit"
-        disabled={loading}
-        style={{
-          padding: "10px 16px",
-          background: "#2563eb",
-          color: "white",
-          border: "none",
-          borderRadius: 6,
-          cursor: "pointer",
-        }}
-      >
+      <button type="submit" disabled={loading}>
         {loading ? "Processing..." : "Add Payment"}
       </button>
     </form>
