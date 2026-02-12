@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/monthly-run",
+      "path": "/api/monthly-run?secret=YOUR_SECRET_HERE",
       "schedule": "0 0 1 * *"
     }
   ]
