@@ -1,43 +1,45 @@
 import { createClient } from "@supabase/supabase-js";
 
-export async function POST(req) {
-  const authHeader = req.headers.get("authorization");
-
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-
+export async function GET() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
+
+  const today = new Date();
 
   const { data: loans } = await supabase
     .from("loans")
     .select("*")
     .eq("status", "ACTIVE");
 
-  const today = new Date();
-
   for (const loan of loans) {
-    const lastDate = new Date(loan.last_interest_date || loan.start_date);
-    const diffMonths =
-      (today.getFullYear() - lastDate.getFullYear()) * 12 +
-      (today.getMonth() - lastDate.getMonth());
+    if (!loan.last_interest_date) continue;
 
-    if (diffMonths >= 1) {
-      const adminFee = Number(loan.balance) * 0.01; // 1% monthly admin
-      const newBalance = Number(loan.balance) + adminFee;
+    const lastInterest = new Date(loan.last_interest_date);
+
+    const diffYears =
+      (today - lastInterest) / (1000 * 60 * 60 * 24 * 365);
+
+    if (diffYears >= 1 && loan.balance > 0) {
+      const interestAmount =
+        loan.balance * (loan.interest_rate / 100);
+
+      const newBalance = loan.balance + interestAmount;
 
       await supabase
         .from("loans")
         .update({
           balance: newBalance,
-          last_interest_date: today,
+          last_interest_date: today.toISOString(),
         })
         .eq("id", loan.id);
+
+      console.log(
+        `Interest applied to loan ${loan.loan_ref}`
+      );
     }
   }
 
-  return Response.json({ message: "Monthly cron executed" });
+  return Response.json({ message: "Interest check completed" });
 }
